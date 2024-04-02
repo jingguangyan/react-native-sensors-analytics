@@ -38,9 +38,6 @@ dir + '/@react-native-community/js/Slider.js',
 dir + '/@react-native-community/src/js/Slider.js'];
 // RN 控制 switch 的文件
 var RNSwitchFiles = [dir + '/react-native/Libraries/Components/Switch/Switch.js'];
-// RN 控制 GestureButtons 的文件
-var RNGestureButtonsFilePaths = [dir + '/react-native-gesture-handler/GestureButtons.js',
-dir + '/react-native-gesture-handler/src/components/GestureButtons.tsx'];
 // click 需 hook 的自执行代码
 var sensorsdataClickHookCode = "(function(thatThis){ \n"
                                +"  try {\n"
@@ -266,57 +263,6 @@ sensorsdataHookSwitchRN = function (reset = false) {
           fs.writeFileSync(onefile, hookedContent, 'utf8');
           console.log(`modify Switch.js succeed`);
         }
-      }
-    }
-  });
-};
-// hook GestureButtons
-sensorsdataHookGestureButtonsRN = function (reset = false) {
-  RNGestureButtonsFilePaths.forEach(function (onefile) {
-    if (fs.existsSync(onefile)) {
-      // 读取文件内容
-      var fileContent = fs.readFileSync(onefile, 'utf8');
-      if (reset) {
-        // 未被 hook 过代码，不需要处理
-        if (fileContent.indexOf('SENSORSDATA HOOK') == -1) {
-          return;
-        }
-        // 检查备份文件是否存在
-        var backFilePath = `${onefile}_sensorsdata_backup`;
-        if (!fs.existsSync(backFilePath)) {
-          throw `File: ${backFilePath} not found, Please rm -rf node_modules and npm install again`;
-        }
-        // 将备份文件重命名恢复 + 自动覆盖被 hook 过的同名文件
-        fs.renameSync(backFilePath, onefile);
-        console.log(`found and reset GestureButtons: ${onefile}`);
-      } else {
-        // 已经 hook 过了，不需要再次 hook
-        if (fileContent.indexOf('SENSORSDATA HOOK') > -1) {
-          return;
-        }
-        console.log(`found GestureButtons: ${onefile}`);
-        // 获取 hook 的代码插入的位置
-        var scriptStr = 'this.props.onPress(active);';
-        var hookIndex = fileContent.indexOf(scriptStr);
-        // 判断文件是否异常，不存在 this.props.onPress(active); 导致无法 hook 点击事件
-        if (hookIndex == -1) {
-          throw "Can't not find this.props.onPress(active); ";
-        }
-        // 插入 hook 代码
-        var hookedContent = `${fileContent.substring(
-          0,
-          hookIndex + scriptStr.length,
-        )}\n${sensorsdataClickHookCode}\n${fileContent.substring(
-          hookIndex + scriptStr.length,
-        )}`;
-        // 备份目标源文件
-        fs.renameSync(
-          onefile,
-          `${onefile}_sensorsdata_backup`,
-        );
-        // 重写修改后的文件
-        fs.writeFileSync(onefile, hookedContent, 'utf8');
-        console.log(`modify GestureButtons succeed`);
       }
     }
   });
@@ -788,7 +734,6 @@ resetAllSensorsdataHookRN = function () {
   // 2 期
   sensorsdataHookSliderRN(true);
   sensorsdataHookSwitchRN(true);
-  sensorsdataHookGestureButtonsRN(true)
   // 3 期
   sensorsdataResetRN(RNClickPressabilityFilePath);
 };
@@ -807,7 +752,6 @@ allSensorsdataHookRN = function () {
       // 2 期
       sensorsdataHookSliderRN();
       sensorsdataHookSwitchRN();
-      sensorsdataHookGestureButtonsRN(false)
       // 3 期
       sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
     }
@@ -817,7 +761,6 @@ allSensorsdataHookRN = function () {
     // 2 期
     sensorsdataHookSliderRN();
     sensorsdataHookSwitchRN();
-    sensorsdataHookGestureButtonsRN(false)
     // 3 期
     sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
   }

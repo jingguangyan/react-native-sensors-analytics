@@ -11,9 +11,6 @@ if (userPackageJson && userPackageJson['sensorsData'] && userPackageJson['sensor
 var reactNavigationPath = dir + '/react-navigation';
 // 自定义变量
 
-var reactNavigationReduxCreatePath = [dir + '/react-navigation-redux-helpers/src/reduxify-navigator.js',
-dir + '/react-navigation-redux-helpers/src/create-redux-container.js'];
-var reactNavigationReduxMiddlePath = dir + '/react-navigation-redux-helpers/src/middleware.js';
 var RNClickFilePath = dir + '/react-native/Libraries/Components/Touchable/Touchable.js';
 var RNClickPressabilityFilePath = dir + '/react-native/Libraries/Pressability/Pressability.js';
 var RNClickableFiles = [dir + '/react-native/Libraries/Renderer/src/renderers/native/ReactNativeFiber.js',
@@ -101,154 +98,6 @@ var sensorsdataSwitchHookCode66 = "if(nativeSwitchRef.current && onValueChange){
                                + "  })(this); /* SENSORSDATA HOOK */}";
 var sensorsdataImportReactNativeHookCode ="import ReactNative from 'react-native';\n";
 
-var sensorsDataHookReduxCreateCode =
-  `   function getParams(route){
-        if(!route){
-          return null;
-        }
-        var childRoute = route.routes[route.index];
-        var params = childRoute.params;
-        if(childRoute.routes){
-          var p = getParams(childRoute);
-          if(p){
-            params = p;
-          }
-        }
-        return params;
-      }
-    function getScreenName(route){
-        if(!route){
-          return null;
-        }
-        var childRoute = route.routes[route.index];
-        var screenName = childRoute.routeName;
-        if(childRoute.routes){
-          var name = getScreenName(childRoute);
-          if(name){
-            screenName = name;
-          }
-        }
-        return screenName;
-      }
-      function trackViewScreen(route){
-        if (!route) {
-          return;
-        }
-        var childRoute = route.routes[route.index];
-        if (route.name === 'Root') {
-          trackViewScreen(childRoute);
-          return;
-        }
-        var screenName = getScreenName(route);
-        var params = getParams(route);
-		var saProperties = {};
-		if (params) {
-		  if (!params.sensorsdataurl) {
-		    saProperties.sensorsdataurl = screenName;
-		  }else{
-	        saProperties.sensorsdataurl = params.sensorsdataurl;
-	      }
-		  if(params.sensorsdataparams){
-		    saProperties.sensorsdataparams = JSON.parse(JSON.stringify(params.sensorsdataparams));
-		  }
-		} else {
-		    saProperties.sensorsdataurl = screenName;
-		}
-	    if(${ignoreScreen}){
-          if(saProperties.sensorsdataparams){
-            saProperties.sensorsdataparams.SAIgnoreViewScreen = true;
-          }else{
-            saProperties.sensorsdataparams = {SAIgnoreViewScreen : true};
-          }
-        }
-		var dataModule = ReactNative?.NativeModules?.RNSensorsDataModule;
-		dataModule?.trackViewScreen && dataModule.trackViewScreen(saProperties);
-      }
-      trackViewScreen(this.props.state);
-      /* SENSORSDATA HOOK */
-      `;
-
-var sensorsDataHookReduxMiddleCode = `
-    if(oldState !== newState){
-      var type = action.type;
-      if(type === 'Navigation/BACK' ||
-          type === 'Navigation/NAVIGATE' ||
-           type === 'Navigation/POP' ||
-           type === 'Navigation/POP_TO_TOP' ||
-           type === 'Navigation/PUSH' ||
-           type === 'Navigation/RESET' ||
-           type === 'Navigation/REPLACE' ||
-           type === 'Navigation/GO_BACK' ||
-           type === 'Navigation/JUMP_TO' ||
-           type === 'Navigation/OPEN_DRAWER' ||
-           type === 'Navigation/CLOSE_DRAWER'){
-        function getParams(route){
-          if(!route){
-            return null;
-          }
-          var childRoute = route.routes[route.index];
-          var params = childRoute.params;
-          if(childRoute.routes){
-            var p = getParams(childRoute);
-            if(p){
-              params = p;
-            }
-          }
-          return params;
-        }
-      function getScreenName(route){
-          if(!route){
-            return null;
-          }
-          var childRoute = route.routes[route.index];
-          var screenName = childRoute.routeName;
-          if(childRoute.routes){
-            var name = getScreenName(childRoute);
-            if(name){
-              screenName = name;
-            }
-          }
-          return screenName;
-        }
-        function trackViewScreen(route){
-          if (!route) {
-            return;
-          }
-          var childRoute = route.routes[route.index];
-          if (route.name === 'Root') {
-            trackViewScreen(childRoute);
-            return;
-          }
-          var screenName = getScreenName(route);
-          var params = getParams(route);
-		  var saProperties = {};
-		  if (params) {
-		    if (!params.sensorsdataurl) {
-		      saProperties.sensorsdataurl = screenName;
-		    }else{
-	          saProperties.sensorsdataurl = params.sensorsdataurl;
-	        }
-		    if(params.sensorsdataparams){
-		      saProperties.sensorsdataparams = JSON.parse(JSON.stringify(params.sensorsdataparams));
-		    }
-		  } else {
-		    saProperties.sensorsdataurl = screenName;
-		  }
-	      if(${ignoreScreen}){
-	          if(saProperties.sensorsdataparams){
-	            saProperties.sensorsdataparams.SAIgnoreViewScreen = true;
-	          }else{
-	            saProperties.sensorsdataparams = {SAIgnoreViewScreen : true};
-	          }
-          }
-		  var dataModule = ReactNative?.NativeModules?.RNSensorsDataModule;
-		  dataModule?.trackViewScreen && dataModule.trackViewScreen(saProperties);
-        }
-        trackViewScreen(navStateSelector(newState));
-        /* SENSORSDATA HOOK */
-      }
-    }
-`;
 
 // hook click
 sensorsdataHookClickRN = function () {
@@ -309,89 +158,6 @@ sensorsdataHookPressabilityClickRN = function () {
 };
 
 
-// hook react-navigation-redux-helper create
-sensorsdataHookNavigationReduxCreate = function (reset = false) {
-  reactNavigationReduxCreatePath.forEach(function (onefile) {
-    if (fs.existsSync(onefile)) {
-      // 读取文件内容
-      var fileContent = fs.readFileSync(onefile, 'utf8');
-      if (reset) {
-        // 未被 hook 过代码，不需要处理
-        if (fileContent.indexOf('SENSORSDATA HOOK') == -1) {
-          return;
-        }
-        // 检查备份文件是否存在
-        var backFilePath = `${onefile}_sensorsdata_backup`;
-        if (!fs.existsSync(backFilePath)) {
-          throw `File: ${backFilePath} not found, Please rm -rf node_modules and npm install again`;
-        }
-        // 将备份文件重命名恢复 + 自动覆盖被 hook 过的同名文件
-        fs.renameSync(backFilePath, onefile);
-        console.log(`found and reset js: ${onefile}`);
-      } else {
-        // 已经 hook 过了，不需要再次 hook
-        if (fileContent.indexOf('SENSORSDATA HOOK') > -1) {
-          return;
-        }
-        console.log(`found redux : ${onefile}`);
-        // 获取 hook 的代码插入的位置
-        var scriptStr = 'initializeListeners(key, this.props.state);';
-        var hookIndex = fileContent.indexOf(scriptStr);
-        // 判断文件是否异常，不存在 touchableHandlePress 方法，导致无法 hook 点击事件
-        if (hookIndex == -1) {
-          throw "Can't not find code \"initializeListeners(key, this.props.state);\"";
-        }
-        // 插入 hook 代码
-        var hookedContent = sensorsdataImportReactNativeHookCode + `${fileContent.substring(
-          0,
-          hookIndex + scriptStr.length
-        )}\n${sensorsDataHookReduxCreateCode}\n${fileContent.substring(
-          hookIndex + scriptStr.length
-        )}`;
-        // 备份源文件
-        fs.renameSync(onefile, `${onefile}_sensorsdata_backup`);
-        // 重写文件
-        fs.writeFileSync(onefile, hookedContent, 'utf8');
-        console.log(`modify redux succeed`);
-      }
-    }
-  });
-};
-
-// hook react-navigation-redux-helper middle
-sensorsdataHookNavigationReduxMiddle = function () {
-  if (fs.existsSync(reactNavigationReduxMiddlePath)) {
-    // 读取文件内容
-    var fileContent = fs.readFileSync(reactNavigationReduxMiddlePath, 'utf8');
-    // 已经 hook 过了，不需要再次 hook
-    if (fileContent.indexOf('SENSORSDATA HOOK') > -1) {
-      return;
-    }
-    console.log(`found middleware.js: ${reactNavigationReduxMiddlePath}`);
-    // 获取 hook 的代码插入的位置
-    var scriptStr = 'const newState = store.getState();';
-    var hookIndex = fileContent.indexOf(scriptStr);
-    // 判断文件是否异常，不存在该代码，导致无法 hook 点击事件
-    if (hookIndex == -1) {
-      throw "Can't not find code \"const newState = store.getState();\n";
-    }
-    // 插入 hook 代码
-    var hookedContent = sensorsdataImportReactNativeHookCode + `${fileContent.substring(
-      0,
-      hookIndex + scriptStr.length
-    )}\n${sensorsDataHookReduxMiddleCode}\n${fileContent.substring(
-      hookIndex + scriptStr.length
-    )}`;
-    // 备份 middleware.js 源文件
-    fs.renameSync(
-      reactNavigationReduxMiddlePath,
-      `${reactNavigationReduxMiddlePath}_sensorsdata_backup`
-    );
-    // 重写 middleware.js 文件
-    fs.writeFileSync(reactNavigationReduxMiddlePath, hookedContent, 'utf8');
-    console.log(`modify middleware.js succeed`);
-  }
-};
 
 // hook slider
 sensorsdataHookSliderRN = function (reset = false) {
@@ -1086,9 +852,6 @@ resetAllSensorsdataHookRN = function () {
   sensorsdataHookGestureButtonsRN(true)
   // 3 期
   sensorsdataResetRN(RNClickPressabilityFilePath);
-  // react-navigation-redux-helper
-  sensorsdataHookNavigationReduxCreate(true);
-  sensorsdataResetRN(reactNavigationReduxMiddlePath);
 };
 // 全部 hook 文件
 allSensorsdataHookRN = function () {
@@ -1122,9 +885,6 @@ allSensorsdataHookRN = function () {
     sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
   }
   sensorsdataHookNavigationRN();
-  // react-navigation-redux-helper
-  sensorsdataHookNavigationReduxCreate();
-  sensorsdataHookNavigationReduxMiddle(reactNavigationReduxMiddlePath);
 };
 // 命令行
 switch (process.argv[2]) {

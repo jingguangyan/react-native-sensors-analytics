@@ -3,11 +3,6 @@
 var path = require("path"),
   fs = require("fs"),
   dir = path.resolve(__dirname, "..");
-var userPackageJson = require("../../package.json");
-var ignoreScreen = false;
-if (userPackageJson && userPackageJson['sensorsData'] && userPackageJson['sensorsData']['ignoreScreen']) {
-    ignoreScreen = true;
-}
 var reactNavigationPath = dir + '/react-navigation';
 // 自定义变量
 
@@ -316,13 +311,6 @@ navigationEventString = function () {
                 saProperties.sensorsdataurl = payload.state.routeName;
             }
             if(type == 'didFocus') {
-			      if(${ignoreScreen}){
-			          if(saProperties.sensorsdataparams){
-			            saProperties.sensorsdataparams.SAIgnoreViewScreen = true;
-			          }else{
-			            saProperties.sensorsdataparams = {SAIgnoreViewScreen : true};
-			          }
-		          }
                  var ReactNative = require('react-native');
                  var dataModule = ReactNative.NativeModules.RNSensorsDataModule;
                  dataModule && dataModule.trackViewScreen && dataModule.trackViewScreen(saProperties);
@@ -366,13 +354,6 @@ navigationString = function (currentStateVarName, actionName) {
   }
 
   script = `${script} var params = $$$getActivePageName$$$(${currentStateVarName});
-		      if(${ignoreScreen}){
-		          if(params.sensorsdataparams){
-		            params.sensorsdataparams.SAIgnoreViewScreen = true;
-		          }else{
-		            params.sensorsdataparams = {SAIgnoreViewScreen : true};
-		          }
-	          }
             if (require('react-native').Platform.OS === 'android') {
              var ReactNative = require('react-native');
              var dataModule = ReactNative.NativeModules.RNSensorsDataModule;

@@ -29,13 +29,6 @@ dir + '/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js',
 dir + '/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-profiling.js',
 dir + '/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-dev.js',
 dir + '/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js'];
-// RN 控制 slider 的文件
-var RNSliderFiles = [dir + '/react-native/Libraries/Components/Slider/Slider.js',
-dir + '/react-native/Libraries/Components/Slider/Slider.js',
-dir + '/@react-native-community/slider/js/Slider.js',
-dir + '/@react-native-community/slider/dist/Slider.js',
-dir + '/@react-native-community/js/Slider.js',
-dir + '/@react-native-community/src/js/Slider.js'];
 // click 需 hook 的自执行代码
 var sensorsdataClickHookCode = "(function(thatThis){ \n"
                                +"  try {\n"
@@ -54,15 +47,6 @@ var sensorsdataClickHookPressabilityCode = " var tag = event.currentTarget && ev
                                             +"    }catch (error){\n"
                                             +"      throw new Error('SensorsData RN Hook Code 调用异常: ' + error);}}}\n"
                                             +")(tag); /* SENSORSDATA HOOK */ ";
-var sensorsdataSliderHookCode = "(function(thatThis){\n"
-                               +"  try {\n"
-                               +"    var ReactNative = require('react-native');\n"
-                               +"    var dataModule = ReactNative.NativeModules.RNSensorsDataModule;\n"
-                               +"    dataModule && dataModule.trackViewClick && dataModule.trackViewClick(event.nativeEvent.target);\n"
-                               +"  } catch (error) { \n"
-                               +"      throw new Error('SensorsData RN Hook Code 调用异常: ' + error);\n"
-                               +"  }\n"
-                               +"})(this); /* SENSORSDATA HOOK */";
 var sensorsdataImportReactNativeHookCode ="import ReactNative from 'react-native';\n";
 
 
@@ -124,56 +108,6 @@ sensorsdataHookPressabilityClickRN = function () {
   }
 };
 
-
-
-// hook slider
-sensorsdataHookSliderRN = function (reset = false) {
-  RNSliderFiles.forEach(function (onefile) {
-    if (fs.existsSync(onefile)) {
-      // 读取文件内容
-      var fileContent = fs.readFileSync(onefile, 'utf8');
-      if (reset) {
-        // 未被 hook 过代码，不需要处理
-        if (fileContent.indexOf('SENSORSDATA HOOK') == -1) {
-          return;
-        }
-        // 检查备份文件是否存在
-        var backFilePath = `${onefile}_sensorsdata_backup`;
-        if (!fs.existsSync(backFilePath)) {
-          throw `File: ${backFilePath} not found, Please rm -rf node_modules and npm install again`;
-        }
-        // 将备份文件重命名恢复 + 自动覆盖被 hook 过的同名文件
-        fs.renameSync(backFilePath, onefile);
-        console.log(`found and reset Slider.js: ${onefile}`);
-      } else {
-        // 已经 hook 过了，不需要再次 hook
-        if (fileContent.indexOf('SENSORSDATA HOOK') > -1) {
-          return;
-        }
-        console.log(`found Slider.js: ${onefile}`);
-        // 获取 hook 的代码插入的位置
-        var scriptStr = 'onSlidingComplete(event.nativeEvent.value);';
-        var hookIndex = fileContent.indexOf(scriptStr);
-        // 判断文件是否异常，不存在 touchableHandlePress 方法，导致无法 hook 点击事件
-        if (hookIndex == -1) {
-          throw "Can't not find onSlidingComplete function";
-        }
-        // 插入 hook 代码
-        var hookedContent = `${fileContent.substring(
-          0,
-          hookIndex + scriptStr.length
-        )}\n${sensorsdataSliderHookCode}\n${fileContent.substring(
-          hookIndex + scriptStr.length
-        )}`;
-        // 备份源文件
-        fs.renameSync(onefile, `${onefile}_sensorsdata_backup`);
-        // 重写文件
-        fs.writeFileSync(onefile, hookedContent, 'utf8');
-        console.log(`modify Slider.js succeed`);
-      }
-    }
-  });
-};
 
 // hook clickable
 sensorsdataHookClickableRN = function (reset = false) {
@@ -638,8 +572,6 @@ resetAllSensorsdataHookRN = function () {
   sensorsdataResetRN(RNClickFilePath);
   sensorsdataResetNavigationRN();
   sensorsdataHookClickableRN(true);
-  // 2 期
-  sensorsdataHookSliderRN(true);
   // 3 期
   sensorsdataResetRN(RNClickPressabilityFilePath);
 };
@@ -655,16 +587,12 @@ allSensorsdataHookRN = function () {
     } else {
       sensorsdataHookClickRN(RNClickFilePath);
       sensorsdataHookClickableRN();
-      // 2 期
-      sensorsdataHookSliderRN();
       // 3 期
       sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
     }
   } else {
     sensorsdataHookClickRN(RNClickFilePath);
     sensorsdataHookClickableRN();
-    // 2 期
-    sensorsdataHookSliderRN();
     // 3 期
     sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
   }

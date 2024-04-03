@@ -8,10 +8,6 @@ var ignoreScreen = false;
 if (userPackageJson && userPackageJson['sensorsData'] && userPackageJson['sensorsData']['ignoreScreen']) {
     ignoreScreen = true;
 }
-var ignoreClick = false;
-if (userPackageJson && userPackageJson['sensorsData'] && userPackageJson['sensorsData']['ignoreClick']) {
-  ignoreClick = true;
-}
 var reactNavigationPath = dir + '/react-navigation';
 // 自定义变量
 
@@ -497,18 +493,12 @@ resetAllSensorsdataHookRN = function () {
 };
 // 全部 hook 文件
 allSensorsdataHookRN = function () {
-  if (ignoreScreen) {
-    console.log('ignore screen');
-  }
-  if (ignoreClick) {
-    console.log('ignore click');
-  } else {
-    sensorsdataHookClickRN(RNClickFilePath);
-    sensorsdataHookClickableRN();
-    sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
-  }
+  sensorsdataHookClickRN(RNClickFilePath);
+  sensorsdataHookClickableRN();
+  sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
   sensorsdataHookNavigationRN();
 };
+
 // 命令行
 switch (process.argv[2]) {
   case '-run':

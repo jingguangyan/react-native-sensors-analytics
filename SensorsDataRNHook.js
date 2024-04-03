@@ -8,6 +8,10 @@ var ignoreScreen = false;
 if (userPackageJson && userPackageJson['sensorsData'] && userPackageJson['sensorsData']['ignoreScreen']) {
     ignoreScreen = true;
 }
+var ignoreClick = false;
+if (userPackageJson && userPackageJson['sensorsData'] && userPackageJson['sensorsData']['ignoreClick']) {
+  ignoreClick = true;
+}
 var reactNavigationPath = dir + '/react-navigation';
 // 自定义变量
 
@@ -47,8 +51,6 @@ var sensorsdataClickHookPressabilityCode = " var tag = event.currentTarget && ev
                                             +"    }catch (error){\n"
                                             +"      throw new Error('SensorsData RN Hook Code 调用异常: ' + error);}}}\n"
                                             +")(tag); /* SENSORSDATA HOOK */ ";
-var sensorsdataImportReactNativeHookCode ="import ReactNative from 'react-native';\n";
-
 
 // hook click
 sensorsdataHookClickRN = function () {
@@ -299,87 +301,6 @@ function lastArgumentName (content, index) {
   return content.substring(start + 1, index + 1);
 }
 
-// hook 代码片段实现 PageView 事件采集;
-navigationString3 = function (
-  prevStateVarName,
-  currentStateVarName,
-  actionName
-) {
-  var script = `
-            function $$$getActivePageName$$$(navigationState){
-              if(!navigationState)
-                return null;
-              const route = navigationState.routes[navigationState.index];
-              if(route.routes){
-                return $$$getActivePageName$$$(route);
-              }else{
-                var saProperties = {};
-                if(route.params) {
-                  if(!route.params.sensorsdataurl){
-                    saProperties.sensorsdataurl = route.routeName;
-                  }else{
-                    saProperties.sensorsdataurl = route.params.sensorsdataurl;
-                  }
-				  if(route.params.sensorsdataparams){
-				     saProperties.sensorsdataparams = JSON.parse(JSON.stringify(route.params.sensorsdataparams));
-				  }
-                } else {
-                  saProperties = {sensorsdataurl:route.routeName};
-                }
-                return saProperties;
-              }
-            }`;
-
-  if (actionName) {
-    script = `
-    ${script}
-    var type = ${actionName}.type;
-    var iosOnPageShow = false;
-
-    if (require('react-native').Platform.OS === 'android') {
-        if(type == 'Navigation/SET_PARAMS' || type == 'Navigation/COMPLETE_TRANSITION') {
-            return;
-        }
-    } else if (require('react-native').Platform.OS === 'ios') {
-        if(type == 'Navigation/BACK' && (${currentStateVarName} && !${currentStateVarName}.isTransitioning)) {
-            iosOnPageShow = true;
-        } else if (!(type == 'Navigation/SET_PARAMS' || type == 'Navigation/COMPLETE_TRANSITION')) {
-            iosOnPageShow = true;
-        }
-        if (!iosOnPageShow) {
-            return;
-        }
-    }`;
-  }
-
-  script = `
-  ${script} var params = $$$getActivePageName$$$(${currentStateVarName});
-	      if(${ignoreScreen}){
-	          if(params.sensorsdataparams){
-	            params.sensorsdataparams.SAIgnoreViewScreen = true;
-	          }else{
-	            params.sensorsdataparams = {SAIgnoreViewScreen : true};
-	          }
-          }
-    if (require('react-native').Platform.OS === 'android') {
-        if (${prevStateVarName}){
-            var prevParams = $$$getActivePageName$$$(${prevStateVarName});
-            if (params.sensorsdataurl == prevParams.sensorsdataurl){
-                  return;
-            }
-         }
-         var ReactNative = require('react-native');
-         var dataModule = ReactNative.NativeModules.RNSensorsDataModule;
-         dataModule && dataModule.trackViewScreen && dataModule.trackViewScreen(params);
-    } else if (require('react-native').Platform.OS === 'ios') {
-        if (!${actionName} || iosOnPageShow) {
-            var ReactNative = require('react-native');
-            var dataModule = ReactNative.NativeModules.RNSensorsDataModule;
-            dataModule && dataModule.trackViewScreen && dataModule.trackViewScreen(params);
-        }
-    }`;
-  return script;
-};
 navigationEventString = function () {
   var script = `if(require('react-native').Platform.OS !== 'ios') {
             return;
@@ -572,7 +493,6 @@ resetAllSensorsdataHookRN = function () {
   sensorsdataResetRN(RNClickFilePath);
   sensorsdataResetNavigationRN();
   sensorsdataHookClickableRN(true);
-  // 3 期
   sensorsdataResetRN(RNClickPressabilityFilePath);
 };
 // 全部 hook 文件
@@ -580,20 +500,11 @@ allSensorsdataHookRN = function () {
   if (ignoreScreen) {
     console.log('ignore screen');
   }
-  if (userPackageJson && userPackageJson['sensorsData']) {
-    var sensorsData = userPackageJson['sensorsData'];
-    if (sensorsData['ignoreClick']) {
-      console.log('ignore click');
-    } else {
-      sensorsdataHookClickRN(RNClickFilePath);
-      sensorsdataHookClickableRN();
-      // 3 期
-      sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
-    }
+  if (ignoreClick) {
+    console.log('ignore click');
   } else {
     sensorsdataHookClickRN(RNClickFilePath);
     sensorsdataHookClickableRN();
-    // 3 期
     sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
   }
   sensorsdataHookNavigationRN();

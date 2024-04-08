@@ -3,8 +3,9 @@
 var path = require("path"),
   fs = require("fs"),
   dir = path.resolve(__dirname, "..");
-var reactNavigationPath = dir + '/react-navigation';
-// 自定义变量
+// react naviagtion
+var reactNavigationContainerPath = dir + '/react-navigation/src/createNavigationContainer.js';
+var reactNavigationSubscriberPath = dir + '/react-navigation/src/getChildEventSubscriber.js';
 
 var RNClickFilePath = dir + '/react-native/Libraries/Components/Touchable/Touchable.js';
 var RNClickableFiles = [
@@ -20,15 +21,18 @@ var sensorsdataClickHookCode = "(function(thatThis){ \n"
                                +"  } catch (error) { throw new Error('SensorsData RN Hook Code 调用异常: ' + error);}\n"
                                +"})(this); /* SENSORSDATA HOOK */ ";
 
+// 判断文件是否已经被hook了；
+function isAlreadyHooked(content) {
+  return content.indexOf('SENSORSDATA HOOK') > -1
+}
+
 // hook click
 sensorsdataHookClickRN = function () {
   if (fs.existsSync(RNClickFilePath)) {
     // 读取文件内容
     var fileContent = fs.readFileSync(RNClickFilePath, 'utf8');
     // 已经 hook 过了，不需要再次 hook
-    if (fileContent.indexOf('SENSORSDATA HOOK') > -1) {
-      return;
-    }
+    if (isAlreadyHooked(fileContent)) return;
     console.log(`found Touchable.js: ${RNClickFilePath}`);
     // 获取 hook 的代码插入的位置
     var hookIndex = fileContent.indexOf("this.touchableHandlePress(");
@@ -49,31 +53,13 @@ sensorsdataHookClickRN = function () {
 
 
 // hook clickable
-sensorsdataHookClickableRN = function (reset = false) {
+sensorsdataHookClickableRN = function () {
   RNClickableFiles.forEach(function (onefile) {
     if (fs.existsSync(onefile)) {
-      if (reset) {
-        // 读取文件内容
-        var fileContent = fs.readFileSync(onefile, 'utf8');
-        // 未被 hook 过代码，不需要处理
-        if (fileContent.indexOf('SENSORSDATA HOOK') == -1) {
-          return;
-        }
-        // 检查备份文件是否存在
-        var backFilePath = `${onefile}_sensorsdata_backup`;
-        if (!fs.existsSync(backFilePath)) {
-          throw `File: ${backFilePath} not found, Please rm -rf node_modules and npm install again`;
-        }
-        // 将备份文件重命名恢复 + 自动覆盖被 hook 过的同名文件
-        fs.renameSync(backFilePath, onefile);
-        console.log(`found and reset clickable: ${onefile}`);
-      } else {
         // 读取文件内容
         var content = fs.readFileSync(onefile, 'utf8');
         // 已经 hook 过了，不需要再次 hook
-        if (content.indexOf('SENSORSDATA HOOK') > -1) {
-          return;
-        }
+        if (isAlreadyHooked(content)) return;
         console.log(`found clickable.js: ${onefile}`);
         // 获取 hook 的代码插入的位置
         var objRe = /ReactNativePrivateInterface\.UIManager\.createView\([\s\S]{1,60}\.uiViewClassName,[\s\S]*?\)[,;]/;
@@ -193,21 +179,20 @@ sensorsdataHookClickableRN = function (reset = false) {
         // 重写文件
         fs.writeFileSync(onefile, hookedContent, 'utf8');
         console.log(`modify clickable.js succeed`);
-      }
     }
   });
 };
 // 恢复被 hook 过的代码
-sensorsdataResetRN = function (resetFilePath) {
+sensorsdataResetRN = function (resetFilePathList) {
+  if (!Array.isArray(resetFilePathList)) return;
+  resetFilePathList.forEach(function (resetFilePath) {
   // 判断需要被恢复的文件是否存在
   if (!fs.existsSync(resetFilePath)) {
     return;
   }
   var fileContent = fs.readFileSync(resetFilePath, 'utf8');
   // 未被 hook 过代码，不需要处理
-  if (fileContent.indexOf('SENSORSDATA HOOK') == -1) {
-    return;
-  }
+  if (!isAlreadyHooked()) return;
   // 检查备份文件是否存在
   var backFilePath = `${resetFilePath}_sensorsdata_backup`;
   if (!fs.existsSync(backFilePath)) {
@@ -216,6 +201,7 @@ sensorsdataResetRN = function (resetFilePath) {
   // 将备份文件重命名恢复 + 自动覆盖被 hook 过的同名 Touchable.js 文件
   fs.renameSync(backFilePath, resetFilePath);
   console.log(`found and reset file: ${resetFilePath}`);
+  });
 };
 
 // 工具函数- add try catch
@@ -309,37 +295,21 @@ navigationString = function (currentStateVarName, actionName) {
 
 /**
  * hook react navigation
- * type: 1\2\3 对应的三个不同的兼容模式的 RN 文件
- * reset 判断是否是重置还是 hook,true 为重置
  */
-injectReactNavigation = function (dirPath, type, reset = false) {
-  if (!dirPath.endsWith('/')) {
-    dirPath += '/';
-  }
-  if (type == 1) {
-    var createNavigationContainerJsFilePath = `${dirPath}src/createNavigationContainer.js`;
-    var getChildEventSubscriberJsFilePath = `${dirPath}src/getChildEventSubscriber.js`;
-    if (!fs.existsSync(createNavigationContainerJsFilePath)) {
+sensorsdataHookNavigationRN = function () {
+  injectNavigationContainer();
+  injectNavigationSubscriber();
+}
+
+injectNavigationContainer = function () {
+    if (!fs.existsSync(reactNavigationContainerPath)) {
       return;
     }
-    if (!fs.existsSync(getChildEventSubscriberJsFilePath)) {
-      return;
-    }
-    // common.modifyFile(createNavigationContainerJsFilePath, onNavigationStateChangeTransformer);
-    if (reset) {
-      sensorsdataResetRN(createNavigationContainerJsFilePath);
-      sensorsdataResetRN(getChildEventSubscriberJsFilePath);
-    } else {
       // 读取文件内容
-      var content = fs.readFileSync(
-        createNavigationContainerJsFilePath,
-        'utf8'
-      );
-      // 已经 hook 过了，不需要再次 hook
-      if (content.indexOf('SENSORSDATA HOOK') > -1) {
-        return;
-      }
-      console.log(`found navigation.js: ${getChildEventSubscriberJsFilePath}`);
+      var content = fs.readFileSync(reactNavigationContainerPath, 'utf8');
+  // 已经 hook 过了，不需要再次 hook
+  if (isAlreadyHooked(fileContent)) return;
+      console.log(`found navigation.js:`, reactNavigationContainerPath);
       // 获取 hook 的代码插入的位置
       var index = content.indexOf(
         "if (typeof this.props.onNavigationStateChange === 'function') {"
@@ -368,18 +338,21 @@ injectReactNavigation = function (dirPath, type, reset = false) {
         content.substring(clojureEnd + 1);
       // 备份 navigation 源文件
       fs.renameSync(
-        createNavigationContainerJsFilePath,
-        `${createNavigationContainerJsFilePath}_sensorsdata_backup`
+        reactNavigationContainerPath,
+        `${reactNavigationContainerPath}_sensorsdata_backup`
       );
       // 重写文件
-      fs.writeFileSync(createNavigationContainerJsFilePath, content, 'utf8');
+      fs.writeFileSync(reactNavigationContainerPath, content, 'utf8');
+};
 
-      // common.modifyFile(getChildEventSubscriberJsFilePath, onEventSubscriberTransformer);
-      var content = fs.readFileSync(getChildEventSubscriberJsFilePath, 'utf8');
-      // 已经 hook 过了，不需要再次 hook
-      if (content.indexOf('SENSORSDATA HOOK') > -1) {
+injectNavigationSubscriber = function () {
+      if (!fs.existsSync(reactNavigationSubscriberPath)) {
         return;
       }
+      var content = fs.readFileSync(reactNavigationSubscriberPath, 'utf8');
+      // 已经 hook 过了，不需要再次 hook
+      if (isAlreadyHooked(content)) return;
+      console.log(`found navigation.js:`, reactNavigationContainerPath, reactNavigationSubscriberPath);
       // 获取 hook 的代码插入的位置
       var script = 'const emit = (type, payload) => {';
       var index = content.indexOf(script);
@@ -391,37 +364,25 @@ injectReactNavigation = function (dirPath, type, reset = false) {
         content.substring(index + script.length);
       // 备份 navigation 源文件
       fs.renameSync(
-        getChildEventSubscriberJsFilePath,
-        `${getChildEventSubscriberJsFilePath}_sensorsdata_backup`
+        reactNavigationSubscriberPath,
+        `${reactNavigationSubscriberPath}_sensorsdata_backup`
       );
       // 重写文件
-      fs.writeFileSync(getChildEventSubscriberJsFilePath, content, 'utf8');
+      fs.writeFileSync(reactNavigationSubscriberPath, content, 'utf8');
       console.log(`modify navigation.js succeed`);
-    }
-  }
-};
-
-// hook pageview 文件
-sensorsdataHookNavigationRN = function () {
-  injectReactNavigation(reactNavigationPath, 1);
-};
-
-// 恢复被 hook 的 pageview 文件
-sensorsdataResetNavigationRN = function () {
-  injectReactNavigation(reactNavigationPath, 1, true);
-};
+}
 
 // 全部 hook 文件恢复
 resetAllSensorsdataHookRN = function () {
-  sensorsdataResetRN(RNClickFilePath);
-  sensorsdataHookClickableRN(true);
-  sensorsdataResetNavigationRN();
+  sensorsdataResetRN([RNClickFilePath]); // 恢复 click
+  sensorsdataResetRN(RNClickableFiles); // 恢复 clickable
+  sensorsdataResetRN([reactNavigationContainerPath, reactNavigationSubscriberPath]); // 恢复 navigation
 };
 // 全部 hook 文件
 allSensorsdataHookRN = function () {
-  sensorsdataHookClickRN(RNClickFilePath);
-  sensorsdataHookClickableRN();
-  sensorsdataHookNavigationRN();
+  sensorsdataHookClickRN(); // hook click
+  sensorsdataHookClickableRN(); // hook clickable
+  sensorsdataHookNavigationRN(); // hook navigation
 };
 
 // 命令行

@@ -7,19 +7,7 @@ var reactNavigationPath = dir + '/react-navigation';
 // 自定义变量
 
 var RNClickFilePath = dir + '/react-native/Libraries/Components/Touchable/Touchable.js';
-var RNClickableFiles = [dir + '/react-native/Libraries/Renderer/src/renderers/native/ReactNativeFiber.js',
-dir + '/react-native/Libraries/Renderer/src/renderers/native/ReactNativeFiber-dev.js',
-dir + '/react-native/Libraries/Renderer/src/renderers/native/ReactNativeFiber-prod.js',
-dir + '/react-native/Libraries/Renderer/src/renderers/native/ReactNativeFiber-profiling.js',
-dir + '/react-native/Libraries/Renderer/ReactNativeFiber-dev.js',
-dir + '/react-native/Libraries/Renderer/ReactNativeFiber-prod.js',
-dir + '/react-native/Libraries/Renderer/oss/ReactNativeRenderer-dev.js',
-dir + '/react-native/Libraries/Renderer/oss/ReactNativeRenderer-prod.js',
-dir + '/react-native/Libraries/Renderer/ReactNativeStack-dev.js',
-dir + '/react-native/Libraries/Renderer/ReactNativeStack-prod.js',
-dir + '/react-native/Libraries/Renderer/oss/ReactNativeRenderer-profiling.js',
-dir + '/react-native/Libraries/Renderer/ReactNativeRenderer-dev.js',
-dir + '/react-native/Libraries/Renderer/ReactNativeRenderer-prod.js',
+var RNClickableFiles = [
 dir + '/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-profiling.js',
 dir + '/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-dev.js',
 dir + '/react-native/Libraries/Renderer/implementations/ReactNativeRenderer-prod.js'];

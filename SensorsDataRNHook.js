@@ -7,7 +7,6 @@ var reactNavigationPath = dir + '/react-navigation';
 // 自定义变量
 
 var RNClickFilePath = dir + '/react-native/Libraries/Components/Touchable/Touchable.js';
-var RNClickPressabilityFilePath = dir + '/react-native/Libraries/Pressability/Pressability.js';
 var RNClickableFiles = [dir + '/react-native/Libraries/Renderer/src/renderers/native/ReactNativeFiber.js',
 dir + '/react-native/Libraries/Renderer/src/renderers/native/ReactNativeFiber-dev.js',
 dir + '/react-native/Libraries/Renderer/src/renderers/native/ReactNativeFiber-prod.js',
@@ -32,16 +31,6 @@ var sensorsdataClickHookCode = "(function(thatThis){ \n"
                                +"    thatThis.props.onPress && dataModule && dataModule.trackViewClick && dataModule.trackViewClick(ReactNative.findNodeHandle(thatThis))\n"
                                +"  } catch (error) { throw new Error('SensorsData RN Hook Code 调用异常: ' + error);}\n"
                                +"})(this); /* SENSORSDATA HOOK */ ";
-var sensorsdataClickHookPressabilityCode = " var tag = event.currentTarget && event.currentTarget._nativeTag?event.currentTarget._nativeTag:event.currentTarget;+\n"
-                                            +"(function(thatThis){\n"
-                                            +"  if(thatThis){\n"
-                                            +"    try {\n"
-                                            +"      var ReactNative = require('react-native');\n"
-                                            +"      var dataModule = ReactNative.NativeModules.RNSensorsDataModule;\n"
-                                            +"      dataModule && dataModule.trackViewClick && dataModule.trackViewClick(thatThis);\n"
-                                            +"    }catch (error){\n"
-                                            +"      throw new Error('SensorsData RN Hook Code 调用异常: ' + error);}}}\n"
-                                            +")(tag); /* SENSORSDATA HOOK */ ";
 
 // hook click
 sensorsdataHookClickRN = function () {
@@ -69,37 +58,6 @@ sensorsdataHookClickRN = function () {
   }
 };
 
-// hook 0.62 0.63 click
-sensorsdataHookPressabilityClickRN = function () {
-  if (fs.existsSync(RNClickPressabilityFilePath)) {
-    // 读取文件内容
-    var fileContent = fs.readFileSync(RNClickPressabilityFilePath, 'utf8');
-    // 已经 hook 过了，不需要再次 hook
-    if (fileContent.indexOf('SENSORSDATA HOOK') > -1) {
-      return;
-    }
-    console.log(`found Pressability.js: ${RNClickPressabilityFilePath}`);
-    // 获取 hook 的代码插入的位置
-    var scriptStr = 'onPress(event);';
-    var hookIndex = fileContent.lastIndexOf(scriptStr);
-    // 判断文件是否异常，不存在 touchableHandlePress 方法，导致无法 hook 点击事件
-    if (hookIndex == -1) {
-      throw "Can't not find onPress(event); code";
-    };
-    // 插入 hook 代码
-    var hookedContent = `${fileContent.substring(
-      0,
-      hookIndex
-    )}\n${sensorsdataClickHookPressabilityCode}\n${fileContent.substring(
-      hookIndex
-    )}`;
-    // 备份 Pressability.js 源文件
-    fs.renameSync(RNClickPressabilityFilePath, `${RNClickPressabilityFilePath}_sensorsdata_backup`);
-    // 重写 Pressability.js 文件
-    fs.writeFileSync(RNClickPressabilityFilePath, hookedContent, 'utf8');
-    console.log(`modify Pressability.js succeed`);
-  }
-};
 
 
 // hook clickable
@@ -468,15 +426,13 @@ sensorsdataResetNavigationRN = function () {
 // 全部 hook 文件恢复
 resetAllSensorsdataHookRN = function () {
   sensorsdataResetRN(RNClickFilePath);
-  sensorsdataResetNavigationRN();
   sensorsdataHookClickableRN(true);
-  sensorsdataResetRN(RNClickPressabilityFilePath);
+  sensorsdataResetNavigationRN();
 };
 // 全部 hook 文件
 allSensorsdataHookRN = function () {
   sensorsdataHookClickRN(RNClickFilePath);
   sensorsdataHookClickableRN();
-  sensorsdataHookPressabilityClickRN(RNClickPressabilityFilePath);
   sensorsdataHookNavigationRN();
 };
 
